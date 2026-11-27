@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'leancloud.dart';
+import 'supabase.dart';
 import 'screens_home.dart';
 import 'screens_vote_chat.dart';
 import 'screens_maintain.dart';
@@ -50,10 +50,10 @@ class _AppShellState extends State<AppShell> {
   int _tab = 0;
   String _nickname = '';
   String _bed = '';
-  LCConfig _config = LCConfig.empty;
+  SBConfig _config = SBConfig.empty;
   bool _loading = true;
 
-  LCClient? get _client => _config.isConfigured ? LCClient(_config) : null;
+  SBClient? get _client => _config.isConfigured ? SBClient(_config) : null;
 
   @override
   void initState() {
@@ -63,13 +63,13 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _loadLocal() async {
     final prefs = await SharedPreferences.getInstance();
-    final cfgRaw = prefs.getString('lc_config');
+    final cfgRaw = prefs.getString('sb_config');
     setState(() {
       _nickname = prefs.getString('nickname') ?? '';
       _bed = prefs.getString('bed') ?? '';
       _config = cfgRaw == null
-          ? LCConfig.empty
-          : LCConfig.fromJson(jsonDecode(cfgRaw) as Map<String, dynamic>);
+          ? SBConfig.empty
+          : SBConfig.fromJson(jsonDecode(cfgRaw) as Map<String, dynamic>);
       _loading = false;
     });
   }
@@ -94,9 +94,9 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  Future<void> _saveConfig(LCConfig cfg) async {
+  Future<void> _saveConfig(SBConfig cfg) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('lc_config', jsonEncode(cfg.toJson()));
+    await prefs.setString('sb_config', jsonEncode(cfg.toJson()));
     setState(() => _config = cfg);
   }
 
@@ -264,7 +264,7 @@ class NotConfiguredCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              '去 leancloud.app 免费注册、建个应用，把 App ID、App Key、服务器地址填到「我的 → 后端配置」里，苹果安卓就能互通了。',
+              '去 supabase.com 免费注册、建个项目，把 Project URL、anon key 填到「我的 → 后端配置」里，苹果安卓就能互通了。',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),
@@ -286,9 +286,9 @@ class NotConfiguredCard extends StatelessWidget {
 class SettingsScreen extends StatefulWidget {
   final String nickname;
   final String bed;
-  final LCConfig config;
+  final SBConfig config;
   final Future<void> Function(String name, String bed) onSaveNickname;
-  final Future<void> Function(LCConfig cfg) onSaveConfig;
+  final Future<void> Function(SBConfig cfg) onSaveConfig;
 
   const SettingsScreen({
     super.key,
@@ -306,9 +306,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late final _nameCtrl = TextEditingController(text: widget.nickname);
   late final _bedCtrl = TextEditingController(text: widget.bed);
-  late final _idCtrl = TextEditingController(text: widget.config.appId);
-  late final _keyCtrl = TextEditingController(text: widget.config.appKey);
-  late final _serverCtrl = TextEditingController(text: widget.config.server);
+  late final _urlCtrl = TextEditingController(text: widget.config.url);
+  late final _keyCtrl = TextEditingController(text: widget.config.anonKey);
   bool _testing = false;
   String _testResult = '';
 
@@ -316,20 +315,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _bedCtrl.dispose();
-    _idCtrl.dispose();
+    _urlCtrl.dispose();
     _keyCtrl.dispose();
-    _serverCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _testConnection() async {
-    final cfg = LCConfig(
-      appId: _idCtrl.text.trim(),
-      appKey: _keyCtrl.text.trim(),
-      server: _serverCtrl.text.trim(),
+    final cfg = SBConfig(
+      url: _urlCtrl.text.trim(),
+      anonKey: _keyCtrl.text.trim(),
     );
     if (!cfg.isConfigured) {
-      setState(() => _testResult = '三项都要填。');
+      setState(() => _testResult = '两项都要填。');
       return;
     }
     setState(() {
@@ -337,12 +334,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _testResult = '';
     });
     try {
-      final client = LCClient(cfg);
+      final client = SBClient(cfg);
       await client.query('Member', limit: 1);
       await widget.onSaveConfig(cfg);
       setState(() => _testResult = '连接成功，已保存。苹果安卓现在用的是同一份数据。');
     } catch (e) {
-      setState(() => _testResult = '连不上：$e\n检查 App ID / App Key / 服务器地址有没有填错。');
+      setState(() => _testResult = '连不上：$e\n检查 Project URL / anon key 有没有填错。');
     } finally {
       if (mounted) setState(() => _testing = false);
     }
@@ -378,31 +375,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: const Text('保存身份'),
         ),
         const SizedBox(height: 24),
-        const Text('后端配置（LeanCloud 免费版）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text('后端配置（Supabase 免费版）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         const Text(
-          '在 leancloud.app 注册并创建应用，在「设置 → 应用 Key」里找到这三项。只填 App Key，不要填 Master Key。',
+          '在 supabase.com 注册并创建项目，在「Project Settings → API」里找到这两项。只填 anon key，不要填 service_role key。',
           style: TextStyle(color: Colors.grey, fontSize: 13),
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: _idCtrl,
-          decoration: const InputDecoration(labelText: 'App ID', border: OutlineInputBorder()),
+          controller: _urlCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Project URL',
+            hintText: '如 https://abcdefghijklm.supabase.co',
+            border: OutlineInputBorder(),
+          ),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _keyCtrl,
           obscureText: true,
-          decoration: const InputDecoration(labelText: 'App Key', border: OutlineInputBorder()),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _serverCtrl,
-          decoration: const InputDecoration(
-            labelText: 'REST API 服务器地址',
-            hintText: '如 https://xxx.lc-cn-n1-shared.com',
-            border: OutlineInputBorder(),
-          ),
+          decoration: const InputDecoration(labelText: 'anon key', border: OutlineInputBorder()),
         ),
         const SizedBox(height: 8),
         ElevatedButton(
@@ -420,7 +412,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Text('关于', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         const Text(
-          '511宿舍公务系统 v1.0\n数据存在你自己的 LeanCloud 应用里，只有你们宿舍的人能看到。App 不收集聊天内容以外的任何数据，不读取通讯录，不后台运行。',
+          '511宿舍公务系统 v1.0\n数据存在你自己的 Supabase 项目里，只有你们宿舍的人能看到。App 不收集聊天内容以外的任何数据，不读取通讯录，不后台运行。',
           style: TextStyle(color: Colors.grey, fontSize: 13),
         ),
       ],

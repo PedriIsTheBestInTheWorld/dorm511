@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'leancloud.dart';
+import 'supabase.dart';
 import 'models.dart';
 import 'main.dart';
 
 /// 投票列表。
 class VoteScreen extends StatefulWidget {
-  final LCClient? client;
+  final SBClient? client;
   final String nickname;
   final VoidCallback onGoSettings;
   const VoteScreen({super.key, required this.client, required this.nickname, required this.onGoSettings});
@@ -111,7 +111,7 @@ class _VoteScreenState extends State<VoteScreen> {
         'type': 'general',
         'options': options,
         'status': 'open',
-        'createdBy': widget.nickname,
+        'created_by': widget.nickname,
       });
       _load();
     } catch (e) {
@@ -170,7 +170,7 @@ class _VoteScreenState extends State<VoteScreen> {
 
 /// 投票详情：投票、看结果、截止、执行任命。
 class PollDetailScreen extends StatefulWidget {
-  final LCClient client;
+  final SBClient client;
   final Poll poll;
   final String nickname;
   const PollDetailScreen({super.key, required this.client, required this.poll, required this.nickname});
@@ -196,7 +196,7 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
     try {
       final rows = await widget.client.query(
         'Vote',
-        where: {'pollId': _poll.objectId},
+        where: {'poll_id': _poll.objectId},
         order: '-createdAt',
         limit: 200,
       );
@@ -230,9 +230,9 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
     }
     try {
       await widget.client.create('Vote', {
-        'pollId': _poll.objectId,
+        'poll_id': _poll.objectId,
         'voter': widget.nickname,
-        'optionIndex': _selected,
+        'option': _selected,
       });
       _load();
     } catch (e) {
@@ -364,7 +364,7 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
 
 /// 宿舍群聊：5 秒轮询 + 下拉刷新。
 class ChatScreen extends StatefulWidget {
-  final LCClient? client;
+  final SBClient? client;
   final String nickname;
   final VoidCallback onGoSettings;
   const ChatScreen({super.key, required this.client, required this.nickname, required this.onGoSettings});
@@ -430,7 +430,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty) return;
     _inputCtrl.clear();
     try {
-      await widget.client!.create('ChatMessage', {'sender': widget.nickname, 'text': text});
+      await widget.client!.create('ChatMessage', {'sender': widget.nickname, 'content': text});
       await _load();
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);

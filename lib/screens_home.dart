@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'leancloud.dart';
+import 'supabase.dart';
 import 'models.dart';
 import 'main.dart';
 
 /// 首页：公告 + 本周值日 + 官员榜。
 class HomeScreen extends StatefulWidget {
-  final LCClient? client;
+  final SBClient? client;
   final String nickname;
   final VoidCallback onGoSettings;
   const HomeScreen({super.key, required this.client, required this.nickname, required this.onGoSettings});
@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // 职位表为空时，自动创建默认职位。
       if (offices.isEmpty) {
         for (final t in defaultOffices) {
-          await client.create('Office', {'title': t, 'holder': '空缺', 'since': ''});
+          await client.create('Office', {'name': t, 'holder': '空缺', 'since': ''});
         }
         final again = await client.query('Office', order: 'createdAt', limit: 20);
         offices = again.map(Office.fromJson).toList();
@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await widget.client!.create('Notice', {
         'title': titleCtrl.text.trim(),
-        'body': bodyCtrl.text.trim(),
+        'content': bodyCtrl.text.trim(),
         'author': widget.nickname,
       });
       _load();
@@ -186,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 /// 官员任命管理：职位列表、添加职位、发起任命投票。
 class OfficersScreen extends StatefulWidget {
-  final LCClient client;
+  final SBClient client;
   final String nickname;
   const OfficersScreen({super.key, required this.client, required this.nickname});
 
@@ -238,7 +238,7 @@ class _OfficersScreenState extends State<OfficersScreen> {
     );
     if (ok != true || ctrl.text.trim().isEmpty) return;
     try {
-      await widget.client.create('Office', {'title': ctrl.text.trim(), 'holder': '空缺', 'since': ''});
+      await widget.client.create('Office', {'name': ctrl.text.trim(), 'holder': '空缺', 'since': ''});
       _load();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('添加失败：$e')));
@@ -278,8 +278,8 @@ class _OfficersScreenState extends State<OfficersScreen> {
         'type': 'appointment',
         'options': [candidate, '维持现状'],
         'status': 'open',
-        'officeId': office.objectId,
-        'createdBy': widget.nickname,
+        'office_id': office.objectId,
+        'created_by': widget.nickname,
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('任命投票已发起，去「投票」页查看。')));

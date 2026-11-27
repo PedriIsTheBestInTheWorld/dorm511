@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'leancloud.dart';
+import 'supabase.dart';
 import 'models.dart';
 import 'main.dart';
 
 /// 维护页入口：密码门。
-/// 密码存在共用的 LeanCloud 后端（Meta 表），不在任何一台手机本地，
+/// 密码存在共用的 Supabase 后端（meta 表），不在任何一台手机本地，
 /// 所以不管在哪台手机上打开维护页，都得输同一个密码 —— 别人进不去。
 /// 第一次打开由维护者本人设一个 4 位数字密码。
 class MaintainGate extends StatefulWidget {
-  final LCClient? client;
+  final SBClient? client;
   final String nickname;
   final VoidCallback onGoSettings;
   const MaintainGate({
@@ -204,7 +204,7 @@ class _MaintainGateState extends State<MaintainGate> {
 
 /// 维护页：功德 / 哈夫币 / 职务任命 / 记录。
 class MaintainScreen extends StatefulWidget {
-  final LCClient client;
+  final SBClient client;
   final String nickname;
   const MaintainScreen(
       {super.key, required this.client, required this.nickname});
@@ -396,7 +396,7 @@ class _MaintainScreenState extends State<MaintainScreen> {
     if (newTitle.isEmpty || newTitle == o.title) return;
     try {
       await widget.client
-          .update('Office', o.objectId!, {'title': newTitle});
+          .update('Office', o.objectId!, {'name': newTitle});
       await widget.client.create('Ledger', {
         'kind': 'rename',
         'member': o.holder,
@@ -492,7 +492,7 @@ class _MaintainScreenState extends State<MaintainScreen> {
     if (ok != true || title.isEmpty) return;
     try {
       await widget.client.create(
-          'Office', {'title': title, 'holder': '空缺', 'since': ''});
+          'Office', {'name': title, 'holder': '空缺', 'since': ''});
       _snack('已添加');
       _load();
     } catch (e) {

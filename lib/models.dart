@@ -1,4 +1,11 @@
-/// 511宿舍公务系统的数据模型（与 LeanCloud 类一一对应）。
+/// 511宿舍公务系统的数据模型（与 Supabase 表一一对应）。
+///
+/// 字段映射（Dart 字段名沿用旧写法，JSON 键按 Supabase 列名）：
+/// - 每行的主键：Dart 字段叫 objectId，对应 Supabase 列 `id`（uuid）。
+/// - 时间：Dart 字段叫 createdAt，对应 Supabase 列 `created_at`（timestamptz）。
+/// - Notice.body ↔ `content`、ChatMessage.text ↔ `content`、
+///   Office.title ↔ `name`、Vote.optionIndex ↔ `option`、
+///   Poll.officeId ↔ `office_id`、Poll.createdBy ↔ `created_by`。
 
 DateTime? _parseDate(dynamic v) {
   if (v == null) return null;
@@ -15,12 +22,12 @@ String _fmtTime(DateTime? t) {
 }
 
 class Member {
-  final String? objectId;
+  final String? objectId; // Supabase 列 id（uuid）
   final String name;
   final String bed;
   final int merit; // 功德
   final int coins; // 哈夫币
-  final DateTime? createdAt;
+  final DateTime? createdAt; // Supabase 列 created_at
 
   Member({
     this.objectId,
@@ -32,12 +39,12 @@ class Member {
   });
 
   factory Member.fromJson(Map<String, dynamic> j) => Member(
-        objectId: j['objectId'],
+        objectId: j['id']?.toString(),
         name: j['name'] ?? '',
         bed: j['bed'] ?? '',
         merit: (j['merit'] as num?)?.toInt() ?? 0,
         coins: (j['coins'] as num?)?.toInt() ?? 0,
-        createdAt: _parseDate(j['createdAt']),
+        createdAt: _parseDate(j['created_at']),
       );
 
   Map<String, dynamic> toJson() =>
@@ -47,53 +54,53 @@ class Member {
 class Notice {
   final String? objectId;
   final String title;
-  final String body;
+  final String body; // Supabase 列 content
   final String author;
   final DateTime? createdAt;
 
   Notice({this.objectId, required this.title, required this.body, required this.author, this.createdAt});
 
   factory Notice.fromJson(Map<String, dynamic> j) => Notice(
-        objectId: j['objectId'],
+        objectId: j['id']?.toString(),
         title: j['title'] ?? '',
-        body: j['body'] ?? '',
+        body: j['content'] ?? '',
         author: j['author'] ?? '',
-        createdAt: _parseDate(j['createdAt']),
+        createdAt: _parseDate(j['created_at']),
       );
 
   Map<String, dynamic> toJson() =>
-      {'title': title, 'body': body, 'author': author};
+      {'title': title, 'content': body, 'author': author};
 
   String get timeText => _fmtTime(createdAt);
 }
 
 class Office {
   final String? objectId;
-  final String title;
+  final String title; // Supabase 列 name
   final String holder;
   final String since;
 
   Office({this.objectId, required this.title, required this.holder, required this.since});
 
   factory Office.fromJson(Map<String, dynamic> j) => Office(
-        objectId: j['objectId'],
-        title: j['title'] ?? '',
+        objectId: j['id']?.toString(),
+        title: j['name'] ?? '',
         holder: j['holder'] ?? '空缺',
         since: j['since'] ?? '',
       );
 
   Map<String, dynamic> toJson() =>
-      {'title': title, 'holder': holder, 'since': since};
+      {'name': title, 'holder': holder, 'since': since};
 }
 
 class Poll {
   final String? objectId;
   final String title;
   final String type; // general 或 appointment
-  final List<String> options;
+  final List<String> options; // Supabase 列 options（jsonb）
   final String status; // open 或 closed
-  final String? officeId;
-  final String createdBy;
+  final String? officeId; // Supabase 列 office_id（uuid）
+  final String createdBy; // Supabase 列 created_by
   final DateTime? createdAt;
 
   Poll({
@@ -108,14 +115,14 @@ class Poll {
   });
 
   factory Poll.fromJson(Map<String, dynamic> j) => Poll(
-        objectId: j['objectId'],
+        objectId: j['id']?.toString(),
         title: j['title'] ?? '',
         type: j['type'] ?? 'general',
         options: (j['options'] as List? ?? []).map((e) => e.toString()).toList(),
         status: j['status'] ?? 'open',
-        officeId: j['officeId'],
-        createdBy: j['createdBy'] ?? '',
-        createdAt: _parseDate(j['createdAt']),
+        officeId: j['office_id']?.toString(),
+        createdBy: j['created_by'] ?? '',
+        createdAt: _parseDate(j['created_at']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -123,8 +130,8 @@ class Poll {
         'type': type,
         'options': options,
         'status': status,
-        if (officeId != null) 'officeId': officeId,
-        'createdBy': createdBy,
+        if (officeId != null) 'office_id': officeId,
+        'created_by': createdBy,
       };
 
   bool get isOpen => status == 'open';
@@ -134,39 +141,39 @@ class Poll {
 
 class Vote {
   final String? objectId;
-  final String pollId;
+  final String pollId; // Supabase 列 poll_id（uuid）
   final String voter;
-  final int optionIndex;
+  final int optionIndex; // Supabase 列 option
 
   Vote({this.objectId, required this.pollId, required this.voter, required this.optionIndex});
 
   factory Vote.fromJson(Map<String, dynamic> j) => Vote(
-        objectId: j['objectId'],
-        pollId: j['pollId'] ?? '',
+        objectId: j['id']?.toString(),
+        pollId: j['poll_id']?.toString() ?? '',
         voter: j['voter'] ?? '',
-        optionIndex: (j['optionIndex'] as num?)?.toInt() ?? 0,
+        optionIndex: (j['option'] as num?)?.toInt() ?? 0,
       );
 
   Map<String, dynamic> toJson() =>
-      {'pollId': pollId, 'voter': voter, 'optionIndex': optionIndex};
+      {'poll_id': pollId, 'voter': voter, 'option': optionIndex};
 }
 
 class ChatMessage {
   final String? objectId;
   final String sender;
-  final String text;
+  final String text; // Supabase 列 content
   final DateTime? createdAt;
 
   ChatMessage({this.objectId, required this.sender, required this.text, this.createdAt});
 
   factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
-        objectId: j['objectId'],
+        objectId: j['id']?.toString(),
         sender: j['sender'] ?? '',
-        text: j['text'] ?? '',
-        createdAt: _parseDate(j['createdAt']),
+        text: j['content'] ?? '',
+        createdAt: _parseDate(j['created_at']),
       );
 
-  Map<String, dynamic> toJson() => {'sender': sender, 'text': text};
+  Map<String, dynamic> toJson() => {'sender': sender, 'content': text};
 
   String get timeText => _fmtTime(createdAt);
 }
@@ -192,13 +199,13 @@ class Ledger {
   });
 
   factory Ledger.fromJson(Map<String, dynamic> j) => Ledger(
-        objectId: j['objectId'],
+        objectId: j['id']?.toString(),
         kind: j['kind'] ?? '',
         member: j['member'] ?? '',
         amount: (j['amount'] as num?)?.toInt() ?? 0,
         note: j['note'] ?? '',
         by: j['by'] ?? '',
-        createdAt: _parseDate(j['createdAt']),
+        createdAt: _parseDate(j['created_at']),
       );
 
   Map<String, dynamic> toJson() => {
