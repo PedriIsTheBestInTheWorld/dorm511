@@ -20,6 +20,14 @@ class SBConfig {
       );
 
   static const empty = SBConfig(url: '', anonKey: '');
+
+  /// 打包时用 --dart-define=SB_URL=... --dart-define=SB_ANON_KEY=...
+  /// 传入的内置默认值（比如网页版直接内置宿舍后端，打开就能用）。
+  /// 不传则为空，和原来一样，需要用户手动填。
+  static const defaultConfig = SBConfig(
+    url: String.fromEnvironment('SB_URL', defaultValue: ''),
+    anonKey: String.fromEnvironment('SB_ANON_KEY', defaultValue: ''),
+  );
 }
 
 /// Supabase PostgREST 客户端（只用 http 包，不依赖 supabase-flutter SDK）。

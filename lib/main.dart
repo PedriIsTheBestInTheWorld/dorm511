@@ -68,7 +68,7 @@ class _AppShellState extends State<AppShell> {
       _nickname = prefs.getString('nickname') ?? '';
       _bed = prefs.getString('bed') ?? '';
       _config = cfgRaw == null
-          ? SBConfig.empty
+          ? SBConfig.defaultConfig
           : SBConfig.fromJson(jsonDecode(cfgRaw) as Map<String, dynamic>);
       _loading = false;
     });
